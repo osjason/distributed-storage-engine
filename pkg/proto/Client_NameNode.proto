@@ -1,0 +1,127 @@
+syntax = "proto3";
+package meta;
+import "NameNode_DataNode.proto";
+import public "google/protobuf/timestamp.proto";
+// Client（客户端） 与 NameNode（服务端） 交互信息定义
+
+
+// 从 Client 上传的部分元数据
+message BasicMetadata{
+  string FileName = 1;
+  string FileSize = 2; // 纯数字，以 MB 为单位
+  string FileExtension = 3;
+  string Path = 4;
+  string FileHash = 5;
+  google.protobuf.Timestamp LastChangeTime = 6; // 文件的最后修改时间，在写入【完成后】会自动更新
+}
+
+message FileMetadata{
+  BasicMetadata  BasicMetadata = 1;
+  repeated Block BlockMetadataList = 2;  // 来自 DataNode 的 Block 元数据列表
+}
+
+// ----------------- Request 定义 ------------------------
+
+// 上传文件
+message PutRequest{
+  BasicMetadata basicMetadata = 1;
+}
+
+// 获取文件
+message GetRequest{
+  string SourcePath = 1;
+  string FileName = 2;
+  string FileExtension = 3;
+  string FileHash = 4;  // 正常情况下，只用 hash 搜索就行了
+}
+
+// 删除文件
+message DeleteRequest{
+  string SourcePath = 1;
+  string FileName = 2;
+  string FileExtension = 3;
+  string FileHash = 4;  // 验证
+}
+
+// 获取某一文件的元数据
+message StatRequest{
+  string FileName = 1;
+  string FileHash = 2;
+  string SourcePath = 3;
+}
+
+// 创建远程目录路径
+message MkdirRequest{
+  string NewPath = 1;
+}
+
+// 更改文件所在目录
+message MovePathRequest{
+  string SourcePath = 1;
+  string NewPath = 2;
+  string FileName = 3;
+  string FileHash = 4; // hash 用于校验
+}
+
+// 获取某一目录下，所有文件的元数据
+message ListMetaRequest{
+  string SourcePath = 1;
+}
+
+// ----------------- Response 定义 ------------------------
+
+message StatResponse{
+  bool IsSucceed = 1;  // 是否成功
+  string ErrMessage = 2;
+  string Path = 3;   // 有可能 Path 被其他客户端更新了
+  repeated BasicMetadata BasicMetadata= 4;
+  // Path + 该目录下的所有文件的元数据 = 目录列表
+}
+
+message MkdirResponse{
+  bool IsSucceed = 1;  // 是否成功
+  string ErrMessage = 2;
+  string Path = 3;
+  repeated BasicMetadata fileList = 4;
+}
+
+message MovePathResponse{
+  bool IsSucceed = 1;  // 是否成功
+  string ErrMessage = 2;
+  string Path = 3;   // 有可能 Path 被其他客户端更新了
+  repeated BasicMetadata BasicMetadata= 4;
+}
+
+message ListMetaResponse{
+  bool IsSucceed = 1;  // 是否成功
+  string ErrMessage = 2;
+  string Path = 3;   // 有可能 Path 被其他客户端更新了
+  repeated BasicMetadata BasicMetadata= 4;
+  // Path + 该目录下的所有文件的元数据 = 目录列表
+}
+
+// DataNodeMonitorRPCResponse：凡涉及到 DataNode 的操作，统一返回 DataNodeMonitor 的 RPC。
+message DataNodeMonitorRPCResponse{
+  bool IsSucceed = 1;  // 是否成功
+  string ErrMessage = 2;
+  string DataNodeMonitorRPC = 3;  // ip + port
+}
+
+// ---------------------------------
+
+// NameNode 作为 GRPC 服务端
+service NameNodeRPC{
+  // 以下转接到 DataNode 进行交互
+  rpc Put(PutRequest) returns (DataNodeMonitorRPCResponse);
+  rpc Get(GetRequest) returns (DataNodeMonitorRPCResponse);
+  rpc Delete(DeleteRequest) returns (DataNodeMonitorRPCResponse);
+  // 以下直接与 NameNode 交互
+  // 获取某路径下的某文件的基础元数据
+  rpc Stat(StatRequest) returns (StatResponse);
+  // 获取某路径下的所有文件的基础元数据
+  rpc List(ListMetaRequest) returns (ListMetaResponse);
+  // 新建文件夹，创建一个新路径
+  rpc Mkdir(MkdirRequest) returns (MkdirResponse);
+  // 移动文件路径
+  rpc MovePath(MovePathRequest) returns (MovePathResponse);
+}
