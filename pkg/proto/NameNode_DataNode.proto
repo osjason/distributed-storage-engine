@@ -1,59 +1,42 @@
 syntax = "proto3";
 package meta;
 import public "google/protobuf/timestamp.proto";
+import public "google/protobuf/empty.proto";
 
 
-enum DataNodeOperation{
-    Write = 0;
-    Delete = 1;
-}
-
-// DataNode 操作状态，一边用于 Client 与 DataNode 交互的直接返回，一边向 NameNode 返回，便于 NameNode 对 DataNode 的操作溯源/记录
-enum DataNodeOperationStatus{
-    WriteErr = 0; 
-    WriteSuccess = 1;
-    DeleteErr = 2;
-    DeleteSuccess = 3;
-}
+/*
+    如果Client 上传中断 ，只发 Block 附带的 FileHash，让 NameNode 删除该 File 的所有已经记录的元数据
+ */
 
 // 每个分成了多个数据块
 message Block{
-    string BlockId = 1;
-    string FileHash = 2;    //用于验证，信息完整也利于后续改造升级
-    int32  OrderInFile = 3;  // 这个块，属于文件中的第几个块？
-    int64 StarSubscript = 4;
-    int64 EndSubscript = 5;
+    string ServerId = 1;
+    string BlockId = 2;
+    string FileHash = 3;
+    string AfterBlockId = 4;
+    int64 StarSubscript = 5;
+    int64 EndSubscript = 6;
     // 一个块，多个服务器备份，这里存服务器 ID 就行
-    repeated string DataNodeServerID = 6;
+
+    // 只有主副本，BackupBlockId 数组才有其它的 BlockId，
+    // 备副本，BackupBlockId 数组为空
+    repeated string BackupBlockId = 7;
+    google.protobuf.Timestamp Time = 8;
 }
 
-// BlockMetadata，一个块的映射元数据
-message BlockMetadata{
-    google.protobuf.Timestamp Time = 1;
-    Block blocks = 2;
-}
-
-// BlockOperationStatusRequest：Block 状态请求，由于并发环境下，需要确定块的归属很重要
-message BlockOperationStatusRequest{
-    // 通过明确操作类型，来明确操作
-    DataNodeOperation operation = 1;
-    // 通过文件的哈希值，来确定操作对象
-    string FileHash = 2;
-}
-
-// BlockOperationStatusResponse Block 状态响应，包括操作结果、成功后的一个 Block 的 元数据
-message BlockOperationStatusResponse{
-    DataNodeOperationStatus OperateStatus = 1;
-    
-    BlockMetadata Metadata = 3;  // 注意，这里是一个块的数据，而文件能分很多个块，这里方便我后续的 stream 流式传输
-}
+// 1: a,b,c; 2:a,b,c
 
 //--------------------
 
-// DataNodeOperationCheck，DataNode 操作确认检查。
+//  DataNode 作为服务端，NameNode 作为远程函数调用端
 //      背景：Client 的任何【主动操作】（上传/删/下载/修改）经过 NameNode 申请后，Client 直接向 DataNode 操作
-//      场景：用于 NameNode 判定元数据是否应该存储，等待 DataNode 将数据变化实际存入后的消息
-service BlockMonitor{
-    // 参数：某一个文件的哈希值，返回某一个文件的 Block 元信息
-    rpc GetBlockStatus(stream BlockOperationStatusRequest) returns (stream BlockOperationStatusResponse);
+//      todo 明确使用场景
+service BlockResultReport{
+    // 返回某一个文件的 Block 元信息 和所属文件的整体 hash 值
+    rpc GetBlockStatus(google.protobuf.Empty) returns (stream Block);
 }
+
+/*
+  file1:block 2, file1: block 1, file2 : block 1, file1 : block 3（此时 file1 取消上传）
+  发送
+ */

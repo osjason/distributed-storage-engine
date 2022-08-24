@@ -4,6 +4,9 @@ import "NameNode_DataNode.proto";
 import public "google/protobuf/timestamp.proto";
 // Client（客户端） 与 NameNode（服务端） 交互信息定义
 
+/*
+  更新方向：鉴权、团队角色 ...
+ */
 
 // 从 Client 上传的部分元数据
 message BasicMetadata{
@@ -12,7 +15,6 @@ message BasicMetadata{
   string FileExtension = 3;
   string Path = 4;
   string FileHash = 5;
-  google.protobuf.Timestamp LastChangeTime = 6; // 文件的最后修改时间，在写入【完成后】会自动更新
 }
 
 message FileMetadata{
@@ -70,6 +72,7 @@ message ListMetaRequest{
 
 // ----------------- Response 定义 ------------------------
 
+
 message StatResponse{
   bool IsSucceed = 1;  // 是否成功
   string ErrMessage = 2;
@@ -81,14 +84,14 @@ message StatResponse{
 message MkdirResponse{
   bool IsSucceed = 1;  // 是否成功
   string ErrMessage = 2;
-  string Path = 3;
+  string RemotePath = 3;
   repeated BasicMetadata fileList = 4;
 }
 
 message MovePathResponse{
   bool IsSucceed = 1;  // 是否成功
   string ErrMessage = 2;
-  string Path = 3;   // 有可能 Path 被其他客户端更新了
+  string RemotePath = 3;   // 有可能 Path 被其他客户端更新了
   repeated BasicMetadata BasicMetadata= 4;
 }
 
@@ -100,22 +103,27 @@ message ListMetaResponse{
   // Path + 该目录下的所有文件的元数据 = 目录列表
 }
 
-// DataNodeMonitorRPCResponse：凡涉及到 DataNode 的操作，统一返回 DataNodeMonitor 的 RPC。
-message DataNodeMonitorRPCResponse{
-  bool IsSucceed = 1;  // 是否成功
+// BlockResponse：凡涉及到 DataNode 的操作，Block 列表。
+message BlockResponse{
+  bool IsSucceed = 1;  // 是否成功，
   string ErrMessage = 2;
-  string DataNodeMonitorRPC = 3;  // ip + port
+  repeated Block BlockList = 3;
 }
+
+
 
 // ---------------------------------
 
 // NameNode 作为 GRPC 服务端
 service NameNodeRPC{
+  // 配置文件存所有 NameNode ，下一版本添加网关
+
   // 以下转接到 DataNode 进行交互
-  rpc Put(PutRequest) returns (DataNodeMonitorRPCResponse);
-  rpc Get(GetRequest) returns (DataNodeMonitorRPCResponse);
-  rpc Delete(DeleteRequest) returns (DataNodeMonitorRPCResponse);
-  // 以下直接与 NameNode 交互
+  rpc Put(PutRequest) returns (BlockResponse);
+  rpc Get(GetRequest) returns (BlockResponse);
+  rpc Delete(DeleteRequest) returns (BlockResponse);
+
+  // 以下直接与 NameNode 交互，不用涉及 DataNode
   // 获取某路径下的某文件的基础元数据
   rpc Stat(StatRequest) returns (StatResponse);
   // 获取某路径下的所有文件的基础元数据
