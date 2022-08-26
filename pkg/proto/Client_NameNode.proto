@@ -1,9 +1,12 @@
 syntax = "proto3";
-package meta;
 import "NameNode_DataNode.proto";
 import public "google/protobuf/timestamp.proto";
-// Client（客户端） 与 NameNode（服务端） 交互信息定义
+option java_multiple_files=false;
+option java_package="com.hyz.proto";
+option java_outer_classname = "Client_NameNode";
+package meta;
 
+// Client（客户端） 与 NameNode（服务端） 交互信息定义
 /*
   更新方向：鉴权、团队角色 ...
  */
@@ -72,7 +75,6 @@ message ListMetaRequest{
 
 // ----------------- Response 定义 ------------------------
 
-
 message StatResponse{
   bool IsSucceed = 1;  // 是否成功
   string ErrMessage = 2;
@@ -119,7 +121,7 @@ service NameNodeRPC{
   // 配置文件存所有 NameNode ，下一版本添加网关
 
   // 以下转接到 DataNode 进行交互
-  rpc Put(PutRequest) returns (BlockResponse);
+  rpc Put(PutRequest) returns (StatResponse);
   rpc Get(GetRequest) returns (BlockResponse);
   rpc Delete(DeleteRequest) returns (BlockResponse);
 

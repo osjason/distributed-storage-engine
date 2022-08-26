@@ -1,7 +1,9 @@
 syntax = "proto3";
 package meta;
 import public "google/protobuf/empty.proto";
-
+option java_multiple_files=false;
+option java_package="com.hyz.proto";
+option java_outer_classname = "NameNode_DataNodeServerMonitor";
 
 // DataNode 监控系统与 NameNode 交互(服务端 stream)
 

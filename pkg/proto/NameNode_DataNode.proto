@@ -2,6 +2,9 @@ syntax = "proto3";
 package meta;
 import public "google/protobuf/timestamp.proto";
 import public "google/protobuf/empty.proto";
+option java_multiple_files=false;
+option java_package="com.hyz.proto";
+option java_outer_classname = "NameNode_DataNode";
 
 
 /*
@@ -16,8 +19,6 @@ message Block{
     string AfterBlockId = 4;
     int64 StarSubscript = 5;
     int64 EndSubscript = 6;
-    // 一个块，多个服务器备份，这里存服务器 ID 就行
-
     // 只有主副本，BackupBlockId 数组才有其它的 BlockId，
     // 备副本，BackupBlockId 数组为空
     repeated string BackupBlockId = 7;
@@ -35,8 +36,3 @@ service BlockResultReport{
     // 返回某一个文件的 Block 元信息 和所属文件的整体 hash 值
     rpc GetBlockStatus(google.protobuf.Empty) returns (stream Block);
 }
-
-/*
-  file1:block 2, file1: block 1, file2 : block 1, file1 : block 3（此时 file1 取消上传）
-  发送
- */
