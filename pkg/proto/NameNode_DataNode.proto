@@ -12,20 +12,41 @@ option java_outer_classname = "NameNode_DataNode";
  */
 
 // 每个分成了多个数据块
+/*
+    nameNode 存储:
+
+    "blockList": {
+        "第一块":[
+            Block,
+            Block,
+            Block
+            ],
+        "第二块": [
+            "Block ID 4" : "Server ID 1",
+            "Block ID 5" : "Server ID 2",
+            "Block ID 6" : "Server ID 3"
+            ]
+    }
+ */
 message Block{
     string ServerId = 1;
     string BlockId = 2;
-    string FileHash = 3;
-    string AfterBlockId = 4;
     int64 StarSubscript = 5;
     int64 EndSubscript = 6;
-    // 只有主副本，BackupBlockId 数组才有其它的 BlockId，
-    // 备副本，BackupBlockId 数组为空
-    repeated string BackupBlockId = 7;
-    google.protobuf.Timestamp Time = 8;
+}
+
+message BlockOrderMap{
+    int32 OrderOfBlockInFile = 1;
+    repeated Block BlockList = 2;
 }
 
 // 1: a,b,c; 2:a,b,c
+
+message BlockListResponse {
+    string FileHash = 1;
+    google.protobuf.Timestamp UploadTime = 2;
+    repeated BlockOrderMap BlockList = 3;
+}
 
 //--------------------
 
@@ -34,5 +55,5 @@ message Block{
 //      todo 明确使用场景
 service BlockResultReport{
     // 返回某一个文件的 Block 元信息 和所属文件的整体 hash 值
-    rpc GetBlockStatus(google.protobuf.Empty) returns (stream Block);
+    rpc GetBlockStatus(google.protobuf.Empty) returns (stream BlockListResponse);
 }
