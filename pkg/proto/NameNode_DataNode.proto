@@ -35,17 +35,25 @@ message Block{
     int64 EndSubscript = 6;
 }
 
+enum BlockStat{
+    WriteErr = 0;
+    WriteSuc = 1;
+    DeleteErr = 2;
+    DeleteSuc = 3;
+}
+
 message BlockOrderMap{
     int32 OrderOfBlockInFile = 1;
     repeated Block BlockList = 2;
 }
 
 // 1: a,b,c; 2:a,b,c
-
+// 操作状态，根据 operateStat 来判断此次操作是否进行。
 message BlockListResponse {
-    string FileHash = 1;
-    google.protobuf.Timestamp UploadTime = 2;
-    repeated BlockOrderMap BlockList = 3;
+    BlockStat OperateStat = 1;
+    string FileHash = 2;
+    google.protobuf.Timestamp UploadTime = 3;
+    repeated BlockOrderMap BlockList = 4;
 }
 
 //--------------------
