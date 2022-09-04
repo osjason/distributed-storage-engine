@@ -58,7 +58,6 @@ message MkdirRequest{
 message MovePathRequest{
   string SourcePath = 1;
   string NewPath = 2;
-  string FileHash = 3; // hash 用于校验
 }
 
 // 获取某一目录下，所有文件的元数据
